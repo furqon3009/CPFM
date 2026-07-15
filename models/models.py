@@ -53,38 +53,6 @@ class CNN(nn.Module):
         x_flat = self.aap(x).view(x.shape[0], -1)
 
         return x_flat, x
-##  Classifier
-# class classifier(nn.Module):
-#     def __init__(self, configs):
-#         super(classifier, self).__init__()
-
-#         model_output_dim = configs.features_len
-#         self.logits = nn.Linear(model_output_dim * configs.final_out_channels, configs.num_classes)
-#         # self.reconstruct = 
-
-#     def forward(self, x):
-#         predictions = self.logits(x)
-#         return predictions
-
-#     def forward2(self, x):
-#         predictions = self.logits(x)
-#         return predictions
-## Temporal Imputer
-class Temporal_Imputer(nn.Module):
-    def __init__(self, configs):
-        super(Temporal_Imputer, self).__init__()
-        self.seq_length = configs.features_len
-        self.num_channels = configs.final_out_channels
-        self.hid_dim = configs.AR_hid_dim
-        # input size: batch_size, 128 channel, 18 seq_length
-        self.rnn = nn.LSTM(input_size=self.num_channels, hidden_size=self.hid_dim)
-
-    def forward(self, x):
-        x = x.view(x.size(0), -1, self.num_channels)
-        out, (h, c) = self.rnn(x)
-        out = out.view(x.size(0), self.num_channels, -1)
-        # take the last time step
-        return out
 
 ## Feature Bootleneck
 class feat_bootleneck(nn.Module):
@@ -126,25 +94,6 @@ def masking(x, num_splits=8, num_masked=4):
     masked_x = rearrange(masked_patches, 'a b p l -> a b (p l)', p=num_splits)
 
     return masked_x, mask
-
-# Autoencoder
-# class AutoEncoder(nn.Module):
-#     def __init__(self, dim, decoder_dim, inner_dim):
-#         super().__init__()
-#         self.prompt_w1 = nn.Linear(dim, inner_dim)
-#         self.prompt_w2 = nn.Linear(inner_dim, decoder_dim)
-#         self.prompt_w3 = nn.Linear(decoder_dim, dim)
-
-#     def forward(self, x):
-#         # batch = x.size()[0]
-#         # x = rearrange(x, 'b t e -> (b t) e')
-#         x = x.to(self.prompt_w1.weight.device)
-#         x = self.prompt_w1(x)
-#         x = torch.tanh(self.prompt_w2(x))
-#         x = self.prompt_w3(x)
-#         # print(f'x.shape:{x.shape}')
-#         # x = rearrange(x, '(b t) e -> b t e', b=batch)
-#         return x
 
 class AutoEncoder(nn.Module):
     def __init__(self, dim, decoder_dim, inner_dim):
