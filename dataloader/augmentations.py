@@ -6,9 +6,6 @@ def DataTransform(sample, config):
 
     weak_aug = scaling(sample, config.jitter_scale_ratio)
     strong_aug = jitter(permutation(sample, max_segments=config.max_seg), config.jitter_ratio)
-    # strong_aug2 = jitter(permutation(sample, max_segments=config.max_seg), config.jitter_ratio)
-
-    # return weak_aug, strong_aug, strong_aug2
     return weak_aug, strong_aug
 
 def DataTransform_FD(sample, config):
@@ -20,8 +17,7 @@ def DataTransform_FD(sample, config):
     aug_4 = add_frequency(sample, pertub_ratio=0.1)
     aug_F = aug_1 + aug_2
     aug_F2 = aug_3 + aug_4
-    # print(f'aug_F:{aug_F}')
-    # print(f'aug_F2:{aug_F2}')
+    
     return weak_aug, aug_F, aug_F2
 
 def jitter(x, sigma=0.8):
@@ -38,29 +34,6 @@ def scaling(x, sigma=1.1):
         ai.append(np.multiply(xi, factor[:, :])[:, np.newaxis, :])
     return np.concatenate((ai), axis=1)
 
-
-# def permutation(x, max_segments=5, seg_mode="random"):
-#     orig_steps = np.arange(x.shape[2])
-
-#     num_segs = np.random.randint(1, max_segments, size=(x.shape[0]))
-
-#     ret = np.zeros_like(x)
-#     for i, pat in enumerate(x):
-#         if num_segs[i] > 1:
-#             if seg_mode == "random":
-#                 split_points = np.random.choice(x.shape[2] - 2, num_segs[i] - 1, replace=False)
-#                 split_points.sort()
-#                 splits = np.split(orig_steps, split_points)
-#             else:
-#                 splits = np.array_split(orig_steps, num_segs[i])
-#             # print(f'splits:{splits}')
-#             warp = np.concatenate(np.random.permutation(splits)).ravel()
-#             ret[i] = pat[0,warp]
-#         else:
-#             ret[i] = pat
-#     # return torch.from_numpy(ret)
-#     return ret
-
 def permutation(x, max_segments=5, seg_mode="equal"):
     orig_steps = np.arange(x.shape[1])
 
@@ -70,20 +43,16 @@ def permutation(x, max_segments=5, seg_mode="equal"):
     for i, pat in enumerate(x):
         if num_segs[i] > 1:
             if seg_mode == "random":
-                # split_points = np.random.choice(x.shape[1] - 2, num_segs[i] - 1, replace=False)
                 split_points = np.random.choice(x.shape[2] - 2, num_segs[i] - 1, replace=False)
                 split_points.sort()
                 splits = np.split(orig_steps, split_points)
             else:
                 splits = np.array_split(orig_steps, num_segs[i])
-            # print(f'splits:{splits}')
             np.random.shuffle(splits)
             warp = np.concatenate(splits).ravel()
-            # warp = np.concatenate(np.random.permutation(splits)).ravel()
             ret[i] = pat[warp]
         else:
             ret[i] = pat
-    # return torch.from_numpy(ret)
     return ret
 
 def remove_frequency(x, pertub_ratio=0.0):
