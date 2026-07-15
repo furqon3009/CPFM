@@ -83,8 +83,7 @@ class AbstractTrainer(object):
 
         # pretraining step
         self.logger.debug(f'Pretraining stage..........')
-        # print(f'Lr:{self.hparams["pre_learning_rate"]}')
-        # print(f'Do:{self.dataset_configs.dropout_src}')
+        
         self.logger.debug("=" * 45)
 
         self.non_adapted_model = self.algorithm.pretrain(self.src_train_dl, self.pre_loss_avg_meters, self.logger)
@@ -93,11 +92,6 @@ class AbstractTrainer(object):
         # adapting step
         self.logger.debug("=" * 45)
         self.logger.debug(f'Adaptation stage..........')
-        # print(f'Lr:{self.hparams["learning_rate"]}')
-        # print(f'Do:{self.dataset_configs.dropout}')
-        # if self.da_method == "B2TSDA_NoCOT":
-        #     print(f'Lr_AE:{self.hparams["learning_rate_AE"]}')
-        #     print(f'Prompt_length:{self.dataset_configs.prompt_length}')
 
         self.logger.debug("=" * 45)
 
@@ -107,14 +101,7 @@ class AbstractTrainer(object):
 
         # Refinement stage ---------------------------------------------------
         self.logger.debug(f'Refinement stage..........')
-        # print(f'Lr_refine:{self.hparams["learning_rate_refine"]}')
-        # print(f'Tau:{self.hparams["tau"]}')
-        # print(f'Gamma:{self.hparams["threshold"]}')
-        # print(f'Iteration:{self.hparams["num_iter"]}')
-        # print(f'Lambda:{self.hparams["lam"]}')
-        # print(f'JS:{self.dataset_configs.jitter_scale_ratio}')
-        # print(f'JR:{self.dataset_configs.jitter_ratio}')
-        # print(f'MS:{self.dataset_configs.max_seg}')
+        
         self.logger.debug("=" * 45)
         self.last_model, self.best_model = self.algorithm.refine(self.trg_train_dl, self.loss_refine_avg_meters, self.logger)
         # --------------------------------------------------------------------
@@ -124,9 +111,6 @@ class AbstractTrainer(object):
     def train_model_source(self):
         # Get the algorithm and the backbone network
         algorithm_class = get_algorithm_class(self.da_method)
-        # backbone_fe = get_backbone_class(self.backbone)
-        # print(f'algorithm_class:{algorithm_class}')
-        # print(f'backbone_fe:{backbone_fe}')
 
         # Initilaize the algorithm
         self.algorithm = algorithm_class(self.dataset_configs, self.hparams, self.device)
@@ -142,10 +126,7 @@ class AbstractTrainer(object):
         self.logger.debug("=" * 45)
 
         self.non_adapted_model = self.algorithm.pretrain(self.src_train_dl, self.src_test_dl, self.pre_loss_avg_meters, self.logger)
-        # self.calculate_metricsSource() # 5 Des
-        self.calculate_metricsSourcewithTargetData() # 5 Des
-        # self.calculate_metricsSourceMAPU()
-        # self.calculate_metricsSourcewithTargetDataMAPU()
+        self.calculate_metricsSourcewithTargetData() 
         self.logger.debug("=" * 45)
 
         return  self.non_adapted_model
@@ -154,8 +135,6 @@ class AbstractTrainer(object):
         # Get the algorithm and the backbone network
         algorithm_class = get_algorithm_class(self.da_method)
         backbone_fe = get_backbone_class(self.backbone)
-        # print(f'algorithm_class:{algorithm_class}')
-        # print(f'backbone_fe:{backbone_fe}')
 
         # Initilaize the algorithm
         self.algorithm = algorithm_class(backbone_fe, self.dataset_configs, self.hparams, self.device)
@@ -168,15 +147,7 @@ class AbstractTrainer(object):
         self.logger.debug(f'Do:{self.dataset_configs.dropout}')
         self.logger.debug(f'mid_dim:{self.dataset_configs.mid_dim}')
         self.logger.debug(f'out_dim:{self.dataset_configs.out_dim}')
-        if self.da_method == "B2TSDA_COT_target":
-            # print(f'Lr_AE:{self.hparams["learning_rate_AE"]}')
-            # print(f'Lr_refine:{self.hparams["learning_rate_refine"]}')
-            # print(f'Prompt_length:{self.dataset_configs.prompt_length}')
-            # print(f'gma:{self.hparams["gma"]}')
-            # print(f'JS:{self.dataset_configs.jitter_scale_ratio}')
-            # print(f'JR:{self.dataset_configs.jitter_ratio}')
-            # print(f'MS:{self.dataset_configs.max_seg}')
-            # print(f'forget_rate:{self.hparams["forget_rate"]}')
+        
         self.logger.debug("=" * 45)
 
         self.model1, self.model2 = self.algorithm.update(self.trg_train_dl, self.trg_test_dl, self.loss_avg_meters, self.logger, self.load_source_model_path) # 17 Maret COT
@@ -188,9 +159,7 @@ class AbstractTrainer(object):
     def train_model_source_multi(self):
         # Get the algorithm and the backbone network
         algorithm_class = get_algorithm_class(self.da_method)
-        # backbone_fe = get_backbone_class(self.backbone)
         
-
         # Initilaize the algorithm
         self.algorithm = algorithm_class(self.dataset_configs, self.hparams, self.device)
         self.algorithm.to(self.device)
@@ -226,10 +195,6 @@ class AbstractTrainer(object):
         self.logger.debug(f'Do:{self.dataset_configs.dropout}')
         self.logger.debug(f'mid_dim:{self.dataset_configs.mid_dim}')
         self.logger.debug(f'out_dim:{self.dataset_configs.out_dim}')
-        # if self.da_method == "B2TSDA_COT_target":
-        #     print(f'Lr_AE:{self.hparams["learning_rate_AE"]}')
-        #     print(f'Prompt_length:{self.dataset_configs.prompt_length}')
-        #     print(f'gma:{self.hparams["gma"]}')
             
         self.logger.debug("=" * 45)
 
@@ -253,8 +218,6 @@ class AbstractTrainer(object):
 
         # pretraining step
         self.logger.debug(f'Learning in Source Only Domain..........')
-        # print(f'Lr:{self.hparams["pre_learning_rate"]}')
-        # print(f'Do:{self.dataset_configs.dropout}')
         self.logger.debug("=" * 45)
 
         self.non_adapted_model = self.algorithm.pretrain(self.src_train_dl, self.pre_loss_avg_meters, self.logger)
@@ -273,10 +236,6 @@ class AbstractTrainer(object):
         # adapting step
         self.logger.debug("=" * 45)
         self.logger.debug(f'Adaptation stage in Target Domain..........')
-        # print(f'Lr:{self.hparams["learning_rate"]}')
-        # print(f'Do:{self.dataset_configs.dropout}')
-        # print(f'Lr_AE:{self.hparams["learning_rate_AE"]}')
-        # print(f'Prompt_length:{self.dataset_configs.prompt_length}')
         self.logger.debug("=" * 45)
 
         self.last_model, self.best_model = self.algorithm.update(self.trg_train_dl, self.loss_avg_meters, self.logger, load_source_model_path)
@@ -611,7 +570,6 @@ class AbstractTrainer(object):
     def calculate_metricsSource(self):
        
         self.evaluateSource(self.src_test_dl) 
-        # self.evaluate(self.trg_test_dl)
         # accuracy  
         acc = self.ACC(self.full_preds.argmax(dim=1).cpu(), self.full_labels.cpu()).item()
         # f1
@@ -631,7 +589,6 @@ class AbstractTrainer(object):
         src_risk = self.loss.item()
         # calculation based target test data
         self.evaluate_ori(self.trg_test_dl) 
-        # self.evaluate(self.trg_test_dl)
         trg_risk = self.loss.item()
 
         return src_risk, trg_risk
