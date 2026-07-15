@@ -24,11 +24,9 @@ class Masking:
         Output
             mask : torch.Tensor of shape [batch_size x n_patches]
         """
-        # print(f'mask.shape:{mask.shape}') # [32, 3000]
         stride = patch_len if stride is None else stride
         mask = mask.unfold(dimension=-1, size=patch_len, step=stride)
-        # print(f'after unfold mask.shape:{mask.shape}') # [32, 375, 8]
-        # mask : [batch_size x n_patches x patch_len]
+        
         return (mask.sum(dim=-1) == patch_len).long()
 
     @staticmethod
@@ -55,7 +53,6 @@ class Masking:
         Output:
             mask : torch.Tensor of shape [batch_size x seq_len]
         """
-        # print(f'x.ndim:{x.ndim}')
         if x.ndim == 4:
             return self._mask_patch_view(x, input_mask=input_mask)
         elif x.ndim == 3:
