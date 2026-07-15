@@ -24,25 +24,16 @@ class Load_Dataset(Dataset):
             x_data = x_data.transpose(0, 2, 1)
 
         x_data_weak, x_data_strong = DataTransform(x_data, dataset_configs)
-        # print(f'x_data:{x_data}')
-        # print(f'x_data_weak:{x_data_weak}')
-        # print(f'x_data_strong:{x_data_strong}')
-        # print(f'type(x_data_weak):{type(x_data_weak)}')
-        # print(f'type(x_data_strong):{type(x_data_strong)}')
-        # print(f'isinstance(x_data_strong, np.ndarray):{isinstance(x_data_strong, np.ndarray)}')
 
         # Convert to torch tensor
         if isinstance(x_data, np.ndarray):
             x_data = torch.from_numpy(x_data)
-            # print(f'x_data ins:{x_data}')
 
         if isinstance(x_data_weak, np.ndarray):
             x_data_weak = torch.from_numpy(x_data_weak)
-            # print(f'x_data_weak ins:{x_data_weak}')
 
         if isinstance(x_data_strong, np.ndarray):
             x_data_strong = torch.from_numpy(x_data_strong)
-            # print(f'x_data_strong ins:{x_data_strong}')
 
         # Load labels
         y_data = dataset.get("labels")
@@ -66,13 +57,11 @@ class Load_Dataset(Dataset):
         self.x_data_strong = x_data_strong.float()
         self.y_data = y_data.long() if y_data is not None else None
         self.len = x_data.shape[0]
-        # print(f'x_data.shape:{x_data.shape}')
 
     def __getitem__(self, index):
         x = self.x_data[index]
         x_weak = self.x_data_weak[index]
         x_strong = self.x_data_strong[index]
-        # print(f'x.shape:{x.shape}')
         if self.transform:
             x = self.transform(self.x_data[index].reshape(self.num_channels, -1, 1)).reshape(self.x_data[index].shape)
         if self.transform2:    
@@ -112,19 +101,6 @@ def data_generator(data_path, domain_id, dataset_configs, hparams, dtype):
 def split_data(data_path, domain_id, dataset_configs, hparams, dtype, run_id):
     # loading dataset file from path
     dataset_file = torch.load(os.path.join(data_path, f"{dtype}_{domain_id}.pt"))
-    # print(f'len(dataset_file["samples"]):{len(dataset_file["samples"])}')
-
-    # dataset = Load_Dataset(dataset_file, dataset_configs)
-    # print(f'dataset.y:{dataset.y}')
-
-    # train_indices, val_indices, _, _ = train_test_split(
-    #     range(len(dataset)),
-    #     dataset.y,
-    #     stratify=dataset.y,
-    #     test_size=0.1,
-    #     random_state=0
-    # )
-    # print(f'dataset_file:{dataset_file}')
 
     train_data, val_data, train_label, val_label = train_test_split(
         dataset_file["samples"],
@@ -133,8 +109,6 @@ def split_data(data_path, domain_id, dataset_configs, hparams, dtype, run_id):
         test_size=0.1,
         random_state=run_id
     )
-    # print(f'train_data:{train_data}')
-    # print(f'train_label:{train_label}')
 
     dataset_train = {}
     dataset_val = {}
@@ -146,26 +120,6 @@ def split_data(data_path, domain_id, dataset_configs, hparams, dtype, run_id):
 
     dataset_train = Load_Dataset(dataset_train, dataset_configs)
     dataset_val = Load_Dataset(dataset_val, dataset_configs)
-
-    # print(f'x_train:{x_train}')
-    # print(f'len(x_train["labels"]):{len(x_train["labels"])}')
-    # print(f'dataset_train["samples"]:{dataset_train["samples"]}')
-    # print(f'dataset_val["samples"]:{dataset_val["samples"]}')
-    # print(f'dataset_train:{dataset_train}')
-    
-
-    # print(f'train_indices:{train_indices}')
-
-    # generate subset based on indices
-    # train_split = Subset(dataset_file, train_indices)
-    # val_split = Subset(dataset_file, val_indices)
-
-    # print(f'len(train_split):{len(train_split)}')
-    # torch.from_numpy(train_split)
-    # print(f'train_split:{train_split}')
-
-    # dataset_train = Load_Dataset(train_split, dataset_configs)
-    # dataset_val = Load_Dataset(val_split, dataset_configs)
 
     if dtype == "test":  # you don't need to shuffle or drop last batch while testing
         shuffle = False
