@@ -354,7 +354,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     trainer = Trainer(args)
-    # trainer.trainSource()
     trainer.trainTarget()
-    # trainer.trainSourceMulti()
-    # trainer.trainTargetMulti()
