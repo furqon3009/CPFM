@@ -42,7 +42,6 @@ class PretrainHead(nn.Module):
         super().__init__()
         self.dropout = nn.Dropout(head_dropout)
         self.linear = nn.Linear(d_model, patch_len)
-        # print(f'reconstruct head self.dropout:{self.dropout}')
 
         if orth_gain is not None:
             torch.nn.init.orthogonal_(self.linear.weight, gain=orth_gain)
@@ -61,13 +60,10 @@ class ClassificationHead(nn.Module):
         d_model: int = 768,
         n_classes: int = 2,
         head_dropout: int = 0.1,
-        # reduction: str = "concat",
         reduction: str = "mean",
     ):
         super().__init__()
         self.dropout = nn.Dropout(head_dropout)
-        # print(f'classifier head self.dropout:{self.dropout}')
-        # print(f'reduction:{reduction}')
         if reduction == "mean":
             self.linear = nn.Linear(d_model, n_classes)
         elif reduction == "concat":
@@ -78,7 +74,6 @@ class ClassificationHead(nn.Module):
     def forward(self, x, input_mask: torch.Tensor = None):
         x = torch.mean(x, dim=1)
         x = self.dropout(x)
-        # print(f'x.device:{x.device}')
         y = self.linear(x)
         return y
 
@@ -104,23 +99,14 @@ class MOMENT(nn.Module):
         super().__init__()
         config = self._update_inputs(config, **kwargs)
         config = self._validate_inputs(config)
-        # print(f'config:{config}')
         self.config = config
-        # print(f'config:{config}')
         self.task_name = config.task_name
         self.seq_len = config.seq_len
         self.patch_len = config.patch_len
         self.prompt_length = config.num_layer
 
         # prompt 
-        # print(f'config.seqence_len:{config.sequence_len}')
-        # print(f'config.patch_len:{config.patch_len}')
-        # print(f'config.num_layer:{config.num_layer}')
         self.pos_embed = nn.Parameter(torch.randn(1, int(config.sequence_len/config.patch_len)+config.num_layer, config.d_model) * .02)
-        # print(f'self.pos_embed.shape:{self.pos_embed.shape}')
-        # self.pos_drop = nn.Dropout(p=config.getattr("dropout", 0.1))
-        # print(f'config.dropout:{config.dropout}')
-        # print(f'self.config.dropout:{self.config.dropout}')
         self.pos_drop = nn.Dropout(p=config.dropout)
         self.prompt = Prompt(length=config.num_layer, embed_dim=config.d_model, prompt_init=config.prompt_init)
         self.fc_norm = nn.LayerNorm(config.d_model)
@@ -136,7 +122,6 @@ class MOMENT(nn.Module):
             seq_len=config.seq_len,
             patch_len=config.patch_len,
             stride=config.patch_stride_len,
-            # dropout=config.getattr("dropout", 0.1),
             dropout=config.dropout,
             add_positional_embedding=config.getattr("add_positional_embedding", True),
             value_embedding_bias=config.getattr("value_embedding_bias", False),
@@ -174,7 +159,6 @@ class MOMENT(nn.Module):
             and config.transformer_backbone in SUPPORTED_HUGGINGFACE_MODELS
         ):
             config.d_model = config.t5_config['d_model']
-            # logging.info(f"Setting d_model to {config.d_model}")
         elif config.d_model is None:
             raise ValueError(
                 "d_model must be specified if transformer backbone "
@@ -200,19 +184,15 @@ class MOMENT(nn.Module):
             return PretrainHead(
                 self.config.d_model,
                 self.config.patch_len,
-                # self.config.getattr("dropout", 0.1),
                 self.config.dropout,
                 self.config.getattr("orth_gain", 1.41),
             )
         elif task_name == TASKS.CLASSIFICATION:
-            # print(f'self.config.dropout:{self.config.dropout}')
             return ClassificationHead(
                 self.config.n_channels,
                 self.config.d_model,
                 self.config.num_class,
-                # self.config.getattr("dropout", 0.1),
                 self.config.dropout,
-                # reduction = self.config.getattr("reduction", "concat"),
                 reduction = self.config.getattr("reduction", "mean"),
             )
         elif task_name == TASKS.FORECASTING:
@@ -234,7 +214,6 @@ class MOMENT(nn.Module):
         return PretrainHead(
                 self.config.d_model,
                 self.config.patch_len,
-                # self.config.getattr("dropout", 0.1),
                 self.config.dropout,
                 self.config.getattr("orth_gain", 1.41),
             )
@@ -243,20 +222,13 @@ class MOMENT(nn.Module):
         model_config = T5Config.from_dict(config.t5_config)
         if config.getattr("randomly_initialize_backbone", False):
             transformer_backbone = T5Model(model_config)
-            # logging.info(
-            #     f"Initializing randomly initialized transformer from {config.transformer_backbone}."
-            # )
         else:
             transformer_backbone = T5EncoderModel(model_config)
-            # logging.info(
-            #     f"Initializing pre-trained transformer from {config.transformer_backbone}."
-            # )
 
         transformer_backbone = transformer_backbone.get_encoder()
 
         if config.getattr("enable_gradient_checkpointing", True):
             transformer_backbone.gradient_checkpointing_enable()
-            # logging.info("Enabling gradient checkpointing.")
 
         return transformer_backbone
 
@@ -296,11 +268,9 @@ class MOMENT(nn.Module):
         enc_out = outputs.last_hidden_state
 
         enc_out = enc_out.reshape((-1, n_channels, n_patches, self.config.d_model))
-        # [batch_size x n_channels x n_patches x d_model]
 
         if reduction == "mean":
             enc_out = enc_out.mean(dim=1, keepdim=False)  # Mean across channels
-            # [batch_size x n_patches x d_model]
             input_mask_patch_view = input_mask_patch_view.unsqueeze(-1).repeat(
                 1, 1, self.config.d_model
             )
@@ -322,31 +292,23 @@ class MOMENT(nn.Module):
         **kwargs,
     ) -> TimeseriesOutputs:
         batch_size, n_channels, _ = x_enc.shape
-        # print(f'x_enc.shape:{x_enc.shape}') # [32, 1, 3000]
 
         if mask is None:
             mask = self.mask_generator.generate_mask(x=x_enc, input_mask=input_mask)
             mask = mask.to(x_enc.device)  # mask: [batch_size x seq_len]
-            # print(f'mask.shape:{mask.shape}') # [32, 3000]
 
         x_enc = self.normalizer(x=x_enc, mask=mask * input_mask, mode="norm")
-        # print(f'after normalizer x_enc.shape:{x_enc.shape}') # [32, 1, 3000]
         # Prevent too short time-series from causing NaNs
         x_enc = torch.nan_to_num(x_enc, nan=0, posinf=0, neginf=0)
-        # print(f'after nan_to_num x_enc.shape:{x_enc.shape}') # [32, 1, 3000]
 
         x_enc = self.tokenizer(x=x_enc)
-        # print(f'after tokenizer x_enc.shape:{x_enc.shape}') # [32, 1, 375, 8] 3000 / 8 = 375
         enc_in = self.patch_embedding(x_enc, mask=mask)
-        # print(f'enc_in.shape:{enc_in.shape}') # [32, 1, 375, 1024]
 
         n_patches = enc_in.shape[2]
-        # print(f'n_patches:{n_patches}') # [375]
         enc_in = enc_in.reshape(
             (batch_size * n_channels, n_patches, self.config.d_model)
         )
-        # print(f'enc_in.shape:{enc_in.shape}') # [32, 375, 1024]
-        # print(f'self.config.transformer_type:{self.config.transformer_type}') # encoder_only
+        
         patch_view_mask = Masking.convert_seq_to_patch_view(input_mask, self.patch_len)
         attention_mask = patch_view_mask.repeat_interleave(n_channels, dim=0)
         if self.config.transformer_type == "encoder_decoder":
@@ -358,13 +320,10 @@ class MOMENT(nn.Module):
         else:
             outputs = self.encoder(inputs_embeds=enc_in, attention_mask=attention_mask)
         enc_out = outputs.last_hidden_state
-        # print(f'enc_out.shape:{enc_out.shape}') # [32, 375, 1024]
 
         enc_out = enc_out.reshape((-1, n_channels, n_patches, self.config.d_model))
-        # print(f'enc_out.shape:{enc_out.shape}') # [[32, 1, 375, 1024]
-
+        
         dec_out = self.head_reconstruct(enc_out)  # [batch_size x n_channels x seq_len]
-        # print(f'dec_out.shape:{dec_out.shape}') # [32, 375, 5]
         dec_out = self.normalizer(x=dec_out, mode="denorm")
 
         if self.config.getattr("debug", False):
@@ -399,7 +358,6 @@ class MOMENT(nn.Module):
         enc_in = enc_in.reshape(
             (batch_size * n_channels, n_patches, self.config.d_model)
         )
-        # [batch_size * n_channels x n_patches x d_model]
 
         patch_view_mask = Masking.convert_seq_to_patch_view(input_mask, self.patch_len)
         attention_mask = patch_view_mask.repeat_interleave(n_channels, dim=0).to(
@@ -541,7 +499,6 @@ class MOMENT(nn.Module):
         self,
         x_enc: torch.Tensor,
         input_mask: torch.Tensor = None,
-        # reduction: str = "concat",
         reduction: str = "mean",
         **kwargs,
     ) -> TimeseriesOutputs:
@@ -550,53 +507,28 @@ class MOMENT(nn.Module):
         if input_mask is None:
             input_mask = torch.ones((batch_size, seq_len)).to(x_enc.device)
 
-        # print(f'input_mask.shape:{input_mask.shape}') # [32, 3000]
-        # print(f'seq_len:{seq_len}') # 3000
-
         x_enc = self.normalizer(x=x_enc, mask=input_mask, mode="norm")
         x_enc = torch.nan_to_num(x_enc, nan=0, posinf=0, neginf=0)
 
-        # input_mask_patch_view = Masking.convert_seq_to_patch_view(
-        #     input_mask, self.patch_len
-        # )
-        # print(f'before tokenizer x_enc.shape:{x_enc.shape}') #[32, 1, 3000]
         x_enc = self.tokenizer(x=x_enc) # x_enc [32, 1, 375, 8]
-        # print(f'after tokenizer x_enc.shape:{x_enc.shape}') 
         enc_in = self.patch_embedding(x_enc, mask=input_mask) # enc_in [32, 1, 375, 1024]
-
-        # print(f'after patch embedding enc_in.shape:{enc_in.shape}') 
 
         n_patches = enc_in.shape[2]
         enc_in = enc_in.reshape(
             (batch_size * n_channels, n_patches, self.config.d_model)  # enc_in [32, 375, 1024]
         )
 
-
-        # print(f'self.patch_len:{self.patch_len}') # 8
-        # print(f'after reshape enc_in.shape:{enc_in.shape}') #[32, 375, 1024]
         enc_in = self.prompt(enc_in) # enc_in [32, 415, 1024]
         enc_in = self.pos_drop(enc_in + self.pos_embed)
         enc_in = self.fc_norm(enc_in)
 
-        # patch_view_mask = Masking.convert_seq_to_patch_view(input_mask, self.patch_len) # [32, 375]
-        # print(f'patch_view_mask.shape:{patch_view_mask.shape}')
-        # print(f'patch_view_mask:{patch_view_mask}')
         patch_view_mask = torch.ones((batch_size, n_patches+self.prompt_length)).to(x_enc.device)
         attention_mask = patch_view_mask.repeat_interleave(n_channels, dim=0) # [32, 375]
-        # print(f'attention_mask.shape:{attention_mask.shape}')
-        # print(f'n_channels:{n_channels}')
-
-        
-        # print(f'after prompt enc_in.shape:{enc_in.shape}')
 
         outputs = self.encoder(inputs_embeds=enc_in, attention_mask=attention_mask)
         enc_out = outputs.last_hidden_state
-        # print(f'enc_out.shape:{enc_out.shape}')
-        # print(f'enc_out:{enc_out}')
         enc_out = enc_out.reshape((-1, n_channels, n_patches+self.prompt_length, self.config.d_model))
         # [batch_size x n_channels x n_patches x d_model]
-        # print(f'reduction:{reduction}')
-        # print(f'after reshape enc_out.shape:{enc_out.shape}')
 
         # Mean across channels
         if reduction == "mean":
@@ -611,34 +543,7 @@ class MOMENT(nn.Module):
         else:
             raise NotImplementedError(f"Reduction method {reduction} not implemented.")
 
-        # print(f'after reduce enc_out.shape:{enc_out.shape}')
-        # print(f'after reduce enc_out:{enc_out}')
-
-        # Mean across patches
-        # enc_out2 = enc_out.mean(dim=1, keepdim=False) 
-
-        # print(f'enc_out2.shape:{enc_out2.shape}')
-
-        # self.pos_embed = nn.Parameter(torch.randn(1, config.patch_len, config.d_model) * .02)
-        # self.pos_drop = nn.Dropout(p=config.getattr("dropout", 0.1))
-
-        # res = self.prompt(enc_out)
-        # print(f'res:{res}')
-        # print(f'res.shape:{res.shape}')
-        # print(f'self.pos_embed.shape:{self.pos_embed.shape}')
-
-        # with pos_embed
-        # res = self.pos_drop(res + self.pos_embed)
-        # print(f'after pos_embed res:{res}')
-        
-        # with fc_norm
-        # res = self.fc_norm(res)
-        # print(f'after fc_norm res:{res}')
-
-        # print(f'enc_out.device:{enc_out.device}')
-        # print(f'after mean enc_out.shape:{enc_out.shape}')
         logits = self.head(enc_out, input_mask=input_mask)
-        # logits = self.head(res, input_mask=input_mask)
 
         return TimeseriesOutputs(embeddings=enc_out, logits=logits, metadata=reduction)
 
@@ -650,7 +555,6 @@ class MOMENT(nn.Module):
         **kwargs,
     ) -> TimeseriesOutputs:
         
-        # print(f'x_enc:{x_enc}')
         if input_mask is None:
             input_mask = torch.ones_like(x_enc[:, 0, :])
 
