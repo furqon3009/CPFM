@@ -190,11 +190,8 @@ class Prompt(nn.Module):
     
     # def forward(self, x_embed, prompt_mask=None, cls_features=None):
     def forward(self, x_embed):
-        # print(f'self.prompt.shape:{self.prompt.shape}') # [40, 1024]
-        # print(f'x_embed.shape:{x_embed.shape}') # [32, 375, 1024]
-        # print(f'di forward self.prompt:{self.prompt}')
+        
         batched_prompt = self.prompt.unsqueeze(0).expand(x_embed.shape[0], -1, -1)
-        # print(f'batched_prompt.shape:{batched_prompt.shape}') #[32, 415, 1024]
         out = torch.cat([batched_prompt, x_embed], dim=1)
 
         return out
